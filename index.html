@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PUBG 武器配装助手</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Microsoft YaHei","PingFang SC",sans-serif;color:#333;max-width:430px;margin:0 auto;min-height:100vh;position:relative;overflow-x:hidden}
+body::before{content:"";position:fixed;top:0;left:0;width:100vw;height:100vh;background:url("枪械背景图.png") center/cover no-repeat;z-index:-2;opacity:0.9}body::after{content:"";position:fixed;top:0;left:50%;transform:translateX(-50%);width:430px;height:100vh;background:rgba(245,246,248,0.2);z-index:-1}
+.status-bar{background:#1A1D23;height:44px;display:flex;align-items:center;padding:0 20px}
+.status-bar .time{color:#FFF;font-size:11px}
+.header{background:#1A1D23;height:56px;display:flex;align-items:center;padding:0 16px;position:relative}
+.header .back{color:#FFF;font-size:14px;cursor:pointer;display:none;background:none;border:none}
+.header .title{color:#FFF;font-size:17px;font-weight:bold;position:absolute;left:50%;transform:translateX(-50%)}
+.header .action{color:#4A90D9;font-size:12px;cursor:pointer;margin-left:auto;display:none;background:none;border:none}
+.page{display:none;padding:16px 16px 90px}
+.page.active{display:block}
+.search-bar{display:flex;align-items:center;background:#FFF;border-radius:10px;padding:10px 14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.search-bar input{border:none;outline:none;flex:1;font-size:14px;color:#333}
+.search-bar input::placeholder{color:#BBB}
+.chips{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.chip{padding:7px 16px;border-radius:18px;font-size:12px;cursor:pointer;border:1px solid #D0DDFF;background:#F0F4FF;color:#4A90D9;font-weight:500;transition:all 0.2s}
+.chip.active{background:#4A90D9;color:#FFF;border-color:#4A90D9}
+.weapon-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.weapon-card{background:#FFF;border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:transform 0.2s}
+.weapon-card:active{transform:scale(0.97)}
+.weapon-card .card-img{height:100px;display:flex;align-items:center;justify-content:center;position:relative}
+.weapon-card .card-img img{width:auto;height:80px;object-fit:contain;filter:drop-shadow(0 4px 6px rgba(0,0,0,0.2))}
+.weapon-card .card-img.AR{background:linear-gradient(135deg,#E8F0FE,#D0E0FF)}
+.weapon-card .card-img.SR{background:linear-gradient(135deg,#FFE8E8,#FFD0D0)}
+.weapon-card .card-img.DMR{background:linear-gradient(135deg,#FFF0E8,#FFE0D0)}
+.weapon-card .card-img.SMG{background:linear-gradient(135deg,#E8F8E8,#D0F0D0)}
+.weapon-card .card-tier{position:absolute;top:8px;right:8px;background:#FFD700;color:#FFF;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold}
+.weapon-card .card-info{padding:10px 12px 14px}
+.weapon-card .card-name{font-size:14px;font-weight:bold;margin-bottom:2px}
+.weapon-card .card-type{font-size:10px;color:#999;margin-bottom:8px}
+.weapon-card .card-stat{font-size:10px;color:#888;display:flex;justify-content:space-between;margin-top:3px}
+.weapon-card .card-stat .bar{width:60px;height:5px;border-radius:3px;background:#E8E8E8;overflow:hidden;display:inline-block;margin-left:4px}
+.weapon-card .card-stat .bar-fill{height:100%;border-radius:3px}
+.section-title{font-size:14px;font-weight:bold;margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+.hot-item{background:#FFF;border-radius:12px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.06);cursor:pointer}
+.hot-item .hot-name{font-size:13px;font-weight:bold;margin-bottom:4px}
+.hot-item .hot-desc{font-size:11px;color:#999}
+.gameplay-card{background:#FFF;border-radius:14px;padding:8px 0;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.gp-item{display:flex;align-items:flex-start;gap:10px;padding:10px 16px;border-bottom:1px solid #F5F5F5}
+.gp-item:last-child{border-bottom:none}
+.gp-icon{font-size:24px;flex-shrink:0;width:36px;text-align:center}
+.gp-item strong{font-size:13px;color:#333;display:block;margin-bottom:3px}
+.gp-item p{font-size:11px;color:#888;line-height:1.5;margin:0}
+.detail-weapon-img{background:#FFF;border-radius:14px;padding:20px;text-align:center;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.detail-weapon-img img{width:auto;height:130px;object-fit:contain;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.25))}
+.detail-weapon-img .detail-name{font-size:15px;font-weight:bold;margin-top:8px}
+.detail-tier-badge{display:inline-block;background:#FFD700;color:#FFF;padding:3px 14px;border-radius:12px;font-size:11px;font-weight:bold;margin-top:4px}
+.radar-section{background:#FFF;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.radar-section h3{font-size:14px;font-weight:bold;margin-bottom:10px}
+.radar-container{display:flex;justify-content:center}
+.attr-section{background:#FFF;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.attr-section h3{font-size:14px;font-weight:bold;margin-bottom:12px}
+.attr-row{display:flex;align-items:center;margin-bottom:10px;font-size:11px}
+.attr-label{width:55px;color:#666}
+.attr-value{width:40px;font-weight:bold;text-align:right;margin-right:8px}
+.attr-bar{flex:1;height:10px;border-radius:5px;background:#F0F0F0;overflow:hidden}
+.attr-bar-fill{height:100%;border-radius:5px;transition:width 0.4s}
+.detail-actions{display:flex;gap:12px;margin-bottom:16px}
+.detail-actions button{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;border:none;transition:opacity 0.2s}
+.detail-actions button:active{opacity:0.8}
+.btn-primary{background:#4A90D9;color:#FFF}
+.btn-outline{background:#FFF;color:#4A90D9;border:1.5px solid #4A90D9!important}
+.att-preview{background:#FFF;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.att-preview h3{font-size:13px;font-weight:bold;margin-bottom:10px}
+.att-stats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.att-stat-item{display:flex;align-items:center;gap:4px;font-size:10px}
+.att-stat-item .mini-bar{width:50px;height:6px;border-radius:3px;background:#F0F0F0;overflow:hidden}
+.att-stat-item .mini-bar-fill{height:100%;border-radius:3px}
+.att-bonus{font-size:10px;color:#4CAF50;margin-top:4px}
+.att-section{margin-bottom:16px}
+.att-section h3{font-size:14px;font-weight:bold;margin-bottom:8px}
+.att-options{display:flex;gap:8px}
+.att-option{padding:10px 12px;border-radius:10px;cursor:pointer;text-align:center;min-width:95px;background:#FFF;border:1px solid #E0E0E0;transition:all 0.2s;flex:1}
+.att-option.selected{background:#4A90D9;color:#FFF;border-color:#4A90D9}
+.att-option .opt-name{font-size:11px;font-weight:bold}
+.att-option .opt-desc{font-size:9px;color:#999;margin-top:2px}
+.att-option.selected .opt-desc{color:#D0DDFF}
+.btn-save-green{width:100%;padding:14px;border-radius:10px;background:#4CAF50;color:#FFF;font-size:15px;font-weight:bold;border:none;cursor:pointer;margin-bottom:12px}
+.btn-save-green:active{opacity:0.8}
+.att-tip{background:#FFF9F0;border:1px solid #FFB347;border-radius:10px;padding:12px 14px;font-size:11px;color:#666;line-height:1.6}
+.compare-vs{background:#FFF;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.compare-vs .vs-weapon{font-size:14px;font-weight:bold;cursor:pointer;display:flex;align-items:center;gap:8px}
+.compare-vs .vs-weapon img{width:36px;height:36px;object-fit:contain}
+.compare-vs .vs-circle{width:30px;height:30px;background:#4A90D9;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FFF;font-size:11px;font-weight:bold}
+.compare-vs .swap-btn{color:#4A90D9;font-size:18px;cursor:pointer;background:none;border:none}
+.compare-row{background:#FFF;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;font-size:11px;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
+.compare-row .c-label{width:55px;color:#666}
+.compare-row .c-v1{width:70px;text-align:center;font-weight:bold}
+.compare-row .c-vs{width:24px;text-align:center;color:#BBB;font-size:9px}
+.compare-row .c-v2{width:70px;text-align:center;font-weight:bold}
+.compare-row .c-badge{padding:3px 10px;border-radius:5px;font-size:9px;font-weight:bold;margin-left:auto}
+.c-badge.green{background:#E8F8E8;color:#4CAF50}
+.c-badge.red{background:#FFE8E8;color:#E53935}
+.c-badge.neutral{background:#F5F5F5;color:#999}
+.compare-radar{background:#FFF;border-radius:14px;padding:16px;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.compare-radar h3{font-size:13px;font-weight:bold;margin-bottom:12px;text-align:center}
+.radar-dual{display:flex;justify-content:space-around;align-items:center}
+.radar-dual .mini-radar{text-align:center}
+.radar-dual .mini-radar .mr-name{font-size:10px;font-weight:bold;margin-bottom:6px}
+.compare-summary{background:#4A90D9;border-radius:12px;padding:14px 16px;color:#FFF;margin-bottom:12px}
+.compare-summary .summary-title{font-size:12px;font-weight:bold;margin-bottom:4px}
+.compare-summary .summary-text{font-size:10px;opacity:0.85}
+.swap-btn-full{width:100%;padding:13px;border-radius:10px;background:#FFF;color:#4A90D9;border:1.5px solid #4A90D9;font-size:14px;font-weight:bold;cursor:pointer}
+.save-preview{background:#FFF;border-radius:16px;padding:20px;text-align:center;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+.save-preview .sp-img{width:60px;height:60px;background:#E8F0FE;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 10px}
+.save-preview .sp-img img{width:48px;height:48px;object-fit:contain}
+.save-preview .sp-name{font-size:16px;font-weight:bold;margin-bottom:12px}
+.save-preview .sp-accessory{background:#F8F8F8;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:11px;color:#666;text-align:left}
+.save-input{margin-bottom:16px}
+.save-input label{font-size:13px;font-weight:bold;display:block;margin-bottom:8px}
+.save-input input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #E0E0E0;font-size:13px;outline:none}
+.save-input input:focus{border-color:#4A90D9}
+.save-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.save-tags .stag{padding:7px 14px;border-radius:15px;font-size:11px;cursor:pointer;background:#FFF;border:1px solid #E0E0E0;color:#666;transition:all 0.2s}
+.save-tags .stag.selected{background:#4A90D9;color:#FFF;border-color:#4A90D9}
+.save-actions{display:flex;gap:12px;margin-bottom:20px}
+.save-actions button{flex:1;padding:14px;border-radius:10px;font-size:14px;font-weight:bold;cursor:pointer;border:none}
+.save-actions button:active{opacity:0.8}
+.saved-list{background:#FFF;border-radius:12px;padding:6px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+.saved-list h3{font-size:13px;font-weight:bold;padding:10px 10px 6px}
+.saved-item{padding:12px;border-bottom:1px solid #F0F0F0;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.saved-item:last-child{border-bottom:none}
+.saved-item .si-name{font-size:12px;font-weight:bold}
+.saved-item .si-detail{font-size:10px;color:#999;margin-top:2px}
+.saved-item .si-arrow{color:#4A90D9;font-size:16px}
+.overlay{position:fixed;top:0;left:50%;transform:translateX(-50%);width:430px;height:100vh;background:rgba(0,0,0,0.5);z-index:100;display:none;align-items:flex-end}
+.overlay.show{display:flex}
+.overlay-content{background:#FFF;width:100%;border-radius:20px 20px 0 0;padding:20px;max-height:70vh;overflow-y:auto}
+.overlay-content h3{font-size:16px;font-weight:bold;margin-bottom:14px}
+.overlay-list{display:flex;flex-direction:column;gap:8px}
+.overlay-item{padding:12px 14px;border-radius:10px;display:flex;align-items:center;gap:12px;cursor:pointer;background:#F9F9F9;border:1px solid transparent;transition:all 0.15s}
+.overlay-item:hover,.overlay-item.selected{border-color:#4A90D9;background:#F0F4FF}
+.overlay-item img{width:36px;height:36px;object-fit:contain}
+.overlay-item .oi-name{font-size:13px;font-weight:bold}
+.overlay-item .oi-type{font-size:10px;color:#999}
+.close-overlay{width:100%;padding:12px;border-radius:10px;background:#EEE;color:#666;font-size:14px;border:none;cursor:pointer;margin-top:12px}
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:430px;height:70px;background:#FFF;display:flex;border-top:1px solid #E8E8E8;z-index:50}
+.nav-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:#BBB;font-size:11px;position:relative;transition:color 0.2s}
+.nav-tab.active{color:#4A90D9;font-weight:bold}
+.nav-tab .nav-icon{font-size:18px;margin-bottom:2px}
+.nav-tab.active::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:40px;height:2px;background:#4A90D9;border-radius:0 0 2px 2px}
+.radar-svg{width:100%;max-width:300px;height:auto}
+.radar-svg-small{width:120px;height:120px}
+@media(max-width:430px){body::before,.bottom-nav,.overlay{width:100%;left:0;transform:none}}
+.no-results{text-align:center;padding:40px 20px;color:#999;font-size:13px}
+.no-results .nr-icon{font-size:48px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="status-bar"><span class="time">9:41</span></div>
+<div class="header">
+  <button class="back" id="btnBack">&#x2190; 返回</button>
+  <span class="title" id="headerTitle">武器库</span>
+  <button class="action" id="btnFavorite">&#x2665; 收藏</button>
+</div>
+
+<div class="page active" id="page-home">
+  <div class="search-bar">
+    <span style="margin-right:8px">&#x1F50D;</span>
+    <input type="text" id="searchInput" placeholder="搜索武器名称..." oninput="filterWeapons()">
+  </div>
+  <div class="chips" id="categoryChips">
+    <div class="chip active" data-cat="all" onclick="filterCategory('all',this)">全部</div>
+    <div class="chip" data-cat="AR" onclick="filterCategory('AR',this)">突击步枪</div>
+    <div class="chip" data-cat="SMG" onclick="filterCategory('SMG',this)">冲锋枪</div>
+    <div class="chip" data-cat="SR" onclick="filterCategory('SR',this)">狙击枪</div>
+    <div class="chip" data-cat="DMR" onclick="filterCategory('DMR',this)">精确射手步枪</div>
+  </div>
+  <div class="weapon-grid" id="weaponGrid"></div>
+  <div class="no-results" id="noResults" style="display:none"><div class="nr-icon">&#x1F50D;</div>没有找到匹配的武器</div>
+  <div class="section-title">&#x1F525; 热门配装推荐</div>
+  <div class="hot-item" onclick="goDetail('HK416')">
+    <div class="hot-name">M416 + 6倍镜 + 补偿器</div>
+    <div class="hot-desc">大神方案 &#xB7; 中远距离扫射 &#xB7; 128K人使用</div>
+  </div>
+  <div class="hot-item" onclick="goDetail('M762')">
+    <div class="hot-name">Beryl M762 + 红点 + 垂直握把</div>
+    <div class="hot-desc">职业选手方案 &#xB7; 近距离爆发 &#xB7; 96K人使用</div>
+  </div>
+  <div class="section-title">🎮 游戏玩法介绍</div>
+  <div class="gameplay-card">
+    <div class="gp-item"><span class="gp-icon">🪂</span><div><strong>跳伞选点</strong><p>开局跳伞选择落点，争夺物资。热门城区竞争激烈，野区发育更稳妥。</p></div></div>
+    <div class="gp-item"><span class="gp-icon">🗺️</span><div><strong>缩圈机制</strong><p>安全区逐步缩小，蓝圈伤害递增。提前进圈占据有利地形是获胜关键。</p></div></div>
+    <div class="gp-item"><span class="gp-icon">🔫</span><div><strong>武器配装</strong><p>合理搭配主副武器与配件。步枪+狙击/连狙是经典组合，冲锋枪适合近战。</p></div></div>
+    <div class="gp-item"><span class="gp-icon">🎯</span><div><strong>枪法技巧</strong><p>压枪控制后坐力，预瞄爆头线，听声辨位。6倍镜缩3倍是最实用的中远配置。</p></div></div>
+    <div class="gp-item"><span class="gp-icon">🥷</span><div><strong>战术策略</strong><p>利用掩体、烟雾弹、载具转移。决赛圈伏地或主动出击，依局势灵活应变。</p></div></div>
+  </div>
+</div>
+
+<div class="page" id="page-detail">
+  <div class="detail-weapon-img" id="detailImg"></div>
+  <div class="radar-section">
+    <h3>&#x1F4CA; 属性雷达图</h3>
+    <div class="radar-container" id="radarChart"></div>
+  </div>
+  <div class="attr-section">
+    <h3>&#x1F4CB; 属性详情</h3>
+    <div id="attrBars"></div>
+  </div>
+  <div class="detail-actions">
+    <button class="btn-primary" onclick="goAttach()">&#x1F527; 配置配件</button>
+    <button class="btn-outline" onclick="addToCompare()">&#x2696; 加入对比</button>
+  </div>
+</div>
+
+<div class="page" id="page-attach">
+  <div class="att-preview">
+    <h3>&#x1F4CA; 属性实时预览</h3>
+    <div class="att-stats" id="attStats"></div>
+    <div class="att-bonus" id="attBonus"></div>
+  </div>
+  <div class="att-section">
+    <h3>&#x1F52B; 枪口</h3>
+    <div class="att-options" id="attMuzzle"></div>
+  </div>
+  <div class="att-section">
+    <h3>&#x270B; 握把</h3>
+    <div class="att-options" id="attGrip"></div>
+  </div>
+  <div class="att-section">
+    <h3>&#x1F4E6; 弹匣</h3>
+    <div class="att-options" id="attMag"></div>
+  </div>
+  <div class="att-section">
+    <h3>&#x1F52D; 瞄具</h3>
+    <div class="att-options" id="attSight"></div>
+  </div>
+  <button class="btn-save-green" onclick="goSave()">&#x2705; 应用配装方案</button>
+  <div class="att-tip">
+    <strong>&#x1F4A1; 推荐理由</strong><br>
+    补偿器+垂直握把最大化降低后坐力，6倍镜适合中远距离扫射。此配装为职业选手常用方案，稳定性极高。
+  </div>
+</div>
+
+<div class="page" id="page-compare">
+  <div class="compare-vs">
+    <div class="vs-weapon" id="compareW1" onclick="openWeaponPicker(1)"></div>
+    <div class="vs-circle">VS</div>
+    <button class="swap-btn" onclick="swapCompare()">&#x21C4;</button>
+    <div class="vs-weapon" id="compareW2" onclick="openWeaponPicker(2)"></div>
+  </div>
+  <div id="compareRows"></div>
+  <div class="compare-radar" id="compareRadar"></div>
+  <div class="compare-summary" id="compareSummary"></div>
+  <button class="swap-btn-full" onclick="swapCompare()">&#x21C4; 交换对比</button>
+</div>
+
+<div class="page" id="page-save">
+  <div class="save-preview" id="savePreview"></div>
+  <div class="save-input">
+    <label>&#x1F4DD; 方案名称</label>
+    <input type="text" id="saveName" placeholder="例如：M4中远配置">
+  </div>
+  <div class="save-tags">
+    <div class="stag selected" onclick="this.classList.toggle('selected')">中远距离</div>
+    <div class="stag" onclick="this.classList.toggle('selected')">近距离</div>
+    <div class="stag" onclick="this.classList.toggle('selected')">新手推荐</div>
+    <div class="stag" onclick="this.classList.toggle('selected')">大神方案</div>
+  </div>
+  <div class="save-actions">
+    <button class="btn-primary" onclick="saveLoadout()">&#x1F4BE; 保存方案</button>
+  </div>
+  <div class="saved-list">
+    <h3>&#x1F4CB; 已保存方案</h3>
+    <div id="savedItems"></div>
+  </div>
+</div>
+
+<div class="overlay" id="weaponPicker">
+  <div class="overlay-content">
+    <h3>&#x1F52B; 选择武器</h3>
+    <div class="overlay-list" id="overlayList"></div>
+    <button class="close-overlay" onclick="closePicker()">取消</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <div class="nav-tab active" data-page="home" onclick="switchTab('home')">
+    <span class="nav-icon">&#x1F52B;</span>武器库
+  </div>
+  <div class="nav-tab" data-page="compare" onclick="switchTab('compare')">
+    <span class="nav-icon">&#x2696;</span>对比
+  </div>
+  <div class="nav-tab" data-page="save" onclick="switchTab('save')">
+    <span class="nav-icon">&#x1F4BE;</span>我的
+  </div>
+</div>
+<script>
+const weapons = [
+  {id:"HK416",name:"M416",type:"AR",typeName:"突击步枪",damage:41,fireRate:700,recoil:"中",recoilVal:50,range:500,capacity:30,tier:"S",img:"Icon_weapon_HK416.webp"},
+  {id:"AKM",name:"AKM",type:"AR",typeName:"突击步枪",damage:47,fireRate:600,recoil:"高",recoilVal:75,range:480,capacity:30,tier:"A",img:"AKM.webp"},
+  {id:"M762",name:"Beryl M762",type:"AR",typeName:"突击步枪",damage:46,fireRate:680,recoil:"高",recoilVal:70,range:450,capacity:30,tier:"S",img:"Icon_weapon_M762.webp"},
+  {id:"SCAR-L",name:"SCAR-L",type:"AR",typeName:"突击步枪",damage:41,fireRate:625,recoil:"中",recoilVal:45,range:500,capacity:30,tier:"A",img:"Icon_weapon_SCAR-L.webp"},
+  {id:"Kar98k",name:"Kar98k",type:"SR",typeName:"狙击枪",damage:75,fireRate:40,recoil:"高",recoilVal:80,range:800,capacity:5,tier:"S",img:"Icon_weapon_Kar98k.webp"},
+  {id:"Mini14",name:"Mini14",type:"DMR",typeName:"精确射手步枪",damage:44,fireRate:480,recoil:"低",recoilVal:30,range:700,capacity:20,tier:"A",img:"Icon_weapon_Mini14.webp"},
+  {id:"SKS",name:"SKS",type:"DMR",typeName:"精确射手步枪",damage:53,fireRate:400,recoil:"中",recoilVal:55,range:600,capacity:10,tier:"A",img:"Icon_weapon_SKS.webp"},
+  {id:"UMP",name:"UMP45",type:"SMG",typeName:"冲锋枪",damage:39,fireRate:650,recoil:"低",recoilVal:25,range:300,capacity:30,tier:"B",img:"Icon_weapon_UMP.webp"}
+];
+
+const attachments = {
+  muzzle:[
+    {name:"补偿器",desc:"-15% 后坐力",effects:{recoil:-15}},
+    {name:"消焰器",desc:"-10% 后坐力",effects:{recoil:-10}},
+    {name:"消音器",desc:"隐藏枪声",effects:{recoil:-5}}
+  ],
+  grip:[
+    {name:"垂直握把",desc:"-15% 垂直后坐",effects:{recoil:-15}},
+    {name:"直角握把",desc:"-10% 水平后坐",effects:{recoil:-10}},
+    {name:"半截握把",desc:"-8% 后坐力",effects:{recoil:-8}}
+  ],
+  mag:[
+    {name:"快速扩容",desc:"40发 +25%换弹",effects:{capacity:10}},
+    {name:"扩容弹匣",desc:"40发",effects:{capacity:10}},
+    {name:"快速弹匣",desc:"+30% 换弹速度",effects:{}}
+  ],
+  sight:[
+    {name:"红点",desc:"1x 无放大",effects:{}},
+    {name:"6倍镜",desc:"3-6x可调",effects:{}},
+    {name:"8倍镜",desc:"4-8x可调",effects:{}}
+  ]
+};
+
+let currentPage = "home";
+let currentWeaponId = null;
+let compareSlots = ["HK416", "AKM"];
+let pickerTarget = 0;
+let activeAttachments = {muzzle:0, grip:0, mag:0, sight:1};
+let activeCategory = "all";
+
+function getWeapon(id){ return weapons.find(w=>w.id===id); }
+function imgPath(w){ return w.img; }
+function renderWeaponGrid(filter="", cat="all"){
+  const grid = document.getElementById("weaponGrid");
+  const noRes = document.getElementById("noResults");
+  let list = weapons;
+  if(cat!=="all") list = list.filter(w=>w.type===cat);
+  if(filter) list = list.filter(w=>w.name.toLowerCase().includes(filter.toLowerCase())||w.typeName.includes(filter));
+  if(list.length===0){ grid.innerHTML=""; noRes.style.display="block"; return; }
+  noRes.style.display="none";
+  grid.innerHTML = list.map(w=>{
+    const dmgPct = Math.min(100,(w.damage/75)*100);
+    const rpmPct = Math.min(100,(w.fireRate/700)*100);
+    const stars = w.tier==="S"?5:w.tier==="A"?4:w.tier==="B"?2:3;
+    return '<div class="weapon-card" onclick="goDetail(\''+w.id+'\')">'+
+      '<div class="card-img '+w.type+'">'+
+      '<span class="card-tier">'+w.tier+'级</span>'+
+      '<img src="'+imgPath(w)+'" alt="'+w.name+'" onerror="this.style.display=\'none\';this.parentElement.innerHTML+=\'<span style=font-size:40px>&#x1F52B;</span>\'">'+
+      '</div>'+
+      '<div class="card-info">'+
+      '<div class="card-name">'+w.name+'</div>'+
+      '<div class="card-type">'+'★'.repeat(stars)+' '+w.typeName+'</div>'+
+      '<div class="card-stat">伤害 <span class="bar"><span class="bar-fill" style="width:'+dmgPct+'%;background:#4A90D9"></span></span> '+w.damage+'</div>'+
+      '<div class="card-stat">射速 <span class="bar"><span class="bar-fill" style="width:'+rpmPct+'%;background:#4CAF50"></span></span> '+w.fireRate+' RPM</div>'+
+      '</div></div>';
+  }).join("");
+}
+
+function filterWeapons(){
+  renderWeaponGrid(document.getElementById("searchInput").value, activeCategory);
+}
+
+function filterCategory(cat, el){
+  activeCategory = cat;
+  document.querySelectorAll("#categoryChips .chip").forEach(c=>c.classList.remove("active"));
+  el.classList.add("active");
+  renderWeaponGrid(document.getElementById("searchInput").value, cat);
+}
+function goDetail(wid){
+  currentWeaponId = wid;
+  const w = getWeapon(wid);
+  if(!w) return;
+  document.getElementById("headerTitle").textContent = w.name;
+  document.getElementById("btnBack").style.display = "block";
+  document.getElementById("btnFavorite").style.display = "block";
+  document.getElementById("btnFavorite").textContent = "\u2665 收藏";
+
+  document.getElementById("detailImg").innerHTML =
+    '<img src="'+imgPath(w)+'" alt="'+w.name+'" onerror="this.style.display=\'none\';this.parentElement.innerHTML+=\'<span style=font-size:60px>&#x1F52B;</span>\'">'+
+    '<div class="detail-name">'+w.name+' \u00B7 '+w.typeName+'</div>'+
+    '<span class="detail-tier-badge">'+w.tier+' 级</span>';
+
+  const maxVals = [75, 700, 100, 800, 40];
+  const vals = [w.damage, w.fireRate, w.recoilVal, w.range, w.capacity];
+  const labels = ["伤害","射速(RPM)","后坐力","射程(m)","弹容量"];
+  const colors = ["#4A90D9","#4CAF50","#FFB347","#9C27B0","#E53935"];
+  const n = 5, cx = 150, cy = 150, r = 115;
+  let pts = [];
+  for(let i=0; i<n; i++){
+    const angle = (Math.PI*2*i/n) - Math.PI/2;
+    const pct = vals[i] / maxVals[i];
+    pts.push({x:cx+r*pct*Math.cos(angle), y:cy+r*pct*Math.sin(angle)});
+  }
+  const polyPts = pts.map(p=>p.x+','+p.y).join(' ');
+  let circles = [0.25,0.5,0.75,1.0].map(s=>'<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*s)+'" fill="none" stroke="#E8E8E8" stroke-width="0.5"/>').join('');
+  let axes = '';
+  for(let i=0; i<n; i++){
+    const angle = (Math.PI*2*i/n) - Math.PI/2;
+    axes += '<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+r*Math.cos(angle))+'" y2="'+(cy+r*Math.sin(angle))+'" stroke="#E0E0E0" stroke-width="0.5"/>';
+  }
+  let lbls = labels.map((l,i)=>{
+    const angle = (Math.PI*2*i/n) - Math.PI/2;
+    const lx = cx+(r+17)*Math.cos(angle), ly = cy+(r+17)*Math.sin(angle);
+    return '<text x="'+lx+'" y="'+ly+'" text-anchor="middle" fill="#666" font-size="10">'+l+'<tspan x="'+lx+'" dy="12" fill="#333" font-weight="bold">'+vals[i]+'</tspan></text>';
+  }).join('');
+
+  document.getElementById("radarChart").innerHTML = '<svg viewBox="0 0 300 300" class="radar-svg">'+circles+axes+'<polygon points="'+polyPts+'" fill="rgba(74,144,217,0.15)" stroke="#4A90D9" stroke-width="2"/>'+lbls+'</svg>';
+
+  const keys = ["damage","fireRate","recoilVal","range","capacity"];
+  const units = [""," RPM","%","m","发"];
+  document.getElementById("attrBars").innerHTML = keys.map((k,i)=>
+    '<div class="attr-row"><span class="attr-label">'+labels[i]+'</span>'+
+    '<span class="attr-value">'+w[k]+units[i]+'</span>'+
+    '<div class="attr-bar"><div class="attr-bar-fill" style="width:'+((vals[i]/maxVals[i])*100)+'%;background:'+colors[i]+'"></div></div></div>'
+  ).join("");
+
+  showPage("detail");
+}
+function goAttach(){
+  if(!currentWeaponId) return;
+  const w = getWeapon(currentWeaponId);
+  document.getElementById("headerTitle").textContent = "配件配置";
+  document.getElementById("btnFavorite").style.display = "none";
+  activeAttachments = {muzzle:0, grip:0, mag:0, sight:1};
+  renderAttOptions();
+  updateAttPreview(w);
+  showPage("attach");
+}
+
+function renderAttOptions(){
+  const cats = ["muzzle","grip","mag","sight"];
+  const ids = ["attMuzzle","attGrip","attMag","attSight"];
+  cats.forEach((cat,i)=>{
+    const container = document.getElementById(ids[i]);
+    if(!container) return;
+    container.innerHTML = attachments[cat].map((a,j)=>{
+      const sel = activeAttachments[cat]===j;
+      return '<div class="att-option'+(sel?' selected':'')+'" onclick="selectAtt(\''+cat+'\','+j+')">'+
+        '<div class="opt-name">'+a.name+'</div>'+
+        '<div class="opt-desc">'+(a.desc||'')+'</div></div>';
+    }).join("");
+  });
+}
+
+function selectAtt(cat, idx){
+  activeAttachments[cat] = idx;
+  renderAttOptions();
+  updateAttPreview(getWeapon(currentWeaponId));
+}
+
+function updateAttPreview(w){
+  let dmgAdj = 0, recoilAdj = 0, capAdj = 0;
+  Object.keys(activeAttachments).forEach(cat=>{
+    const att = attachments[cat][activeAttachments[cat]];
+    if(att.effects.damage) dmgAdj += att.effects.damage;
+    if(att.effects.recoil) recoilAdj += att.effects.recoil;
+    if(att.effects.capacity) capAdj += att.effects.capacity;
+  });
+
+  const newDmg = w.damage + dmgAdj;
+  const newRecoil = Math.max(0, w.recoilVal + recoilAdj);
+  const newCap = w.capacity + capAdj;
+
+  document.getElementById("attStats").innerHTML =
+    '<div class="att-stat-item">伤害 <span style="color:#4A90D9;font-weight:bold">'+newDmg+'</span> <span class="mini-bar"><span class="mini-bar-fill" style="width:'+((newDmg/75)*100)+'%;background:#4A90D9"></span></span></div>'+
+    '<div class="att-stat-item">射速 <span style="color:#4CAF50;font-weight:bold">'+w.fireRate+'</span> <span class="mini-bar"><span class="mini-bar-fill" style="width:'+((w.fireRate/700)*100)+'%;background:#4CAF50"></span></span></div>'+
+    '<div class="att-stat-item">后坐力 <span style="color:#FFB347;font-weight:bold">'+newRecoil+'%</span> <span class="mini-bar"><span class="mini-bar-fill" style="width:'+newRecoil+'%;background:#FFB347"></span></span></div>'+
+    '<div class="att-stat-item">射程 <span style="color:#9C27B0;font-weight:bold">'+w.range+'m</span> <span class="mini-bar"><span class="mini-bar-fill" style="width:'+((w.range/800)*100)+'%;background:#9C27B0"></span></span></div>'+
+    '<div class="att-stat-item">弹容 <span style="color:#E53935;font-weight:bold">'+newCap+'发</span> <span class="mini-bar"><span class="mini-bar-fill" style="width:'+((newCap/40)*100)+'%;background:#E53935"></span></span></div>';
+}
+
+function addToCompare(){
+  if(!currentWeaponId) return;
+  compareSlots[0] = compareSlots[1];
+  compareSlots[1] = currentWeaponId;
+  switchTab("compare");
+}
+function renderCompare(){
+  const w1 = getWeapon(compareSlots[0]) || weapons[0];
+  const w2 = getWeapon(compareSlots[1]) || weapons[1];
+  document.getElementById("compareW1").innerHTML = '<img src="'+imgPath(w1)+'" alt="'+w1.name+'" onerror="this.style.display=\'none\'"> '+w1.name;
+  document.getElementById("compareW2").innerHTML = w2.name+' <img src="'+imgPath(w2)+'" alt="'+w2.name+'" onerror="this.style.display=\'none\'">';
+
+  const attrs = [
+    {label:"伤害",k:"damage",unit:"",max:75,higher:true},
+    {label:"射速",k:"fireRate",unit:" RPM",max:700,higher:true},
+    {label:"后坐力",k:"recoilVal",unit:"",max:100,higher:false},
+    {label:"射程",k:"range",unit:"m",max:800,higher:true},
+    {label:"弹容量",k:"capacity",unit:"发",max:40,higher:true}
+  ];
+
+  document.getElementById("compareRows").innerHTML = attrs.map(a=>{
+    const v1 = w1[a.k], v2 = w2[a.k];
+    let badge = "", cls = "neutral";
+    if(a.higher){
+      if(v1>v2){ badge = "W1 更强"; cls = "green"; }
+      else if(v2>v1){ badge = "W2 更强"; cls = "green"; }
+      else { badge = "持平"; }
+    } else {
+      if(v1<v2){ badge = "W1 更稳"; cls = "green"; }
+      else if(v2<v1){ badge = "W2 更稳"; cls = "green"; }
+      else { badge = "持平"; }
+    }
+    return '<div class="compare-row">'+
+      '<span class="c-label">'+a.label+'</span>'+
+      '<span class="c-v1">'+v1+a.unit+'</span>'+
+      '<span class="c-vs">VS</span>'+
+      '<span class="c-v2">'+v2+a.unit+'</span>'+
+      '<span class="c-badge '+cls+'">'+badge+'</span></div>';
+  }).join("");
+
+  document.getElementById("compareRadar").innerHTML = '<h3>&#x1F4CA; 雷达对比</h3><div class="radar-dual">'+
+    '<div class="mini-radar"><div class="mr-name">'+w1.name+'</div>'+miniRadar(w1,"#4A90D9")+'</div>'+
+    '<div class="mini-radar"><div class="mr-name">'+w2.name+'</div>'+miniRadar(w2,"#E53935")+'</div></div>';
+
+  document.getElementById("compareSummary").innerHTML = (()=>{
+    let w1Score=0, w2Score=0;
+    attrs.forEach(a=>{
+      const v1=w1[a.k], v2=w2[a.k];
+      if(a.higher){ if(v1>v2) w1Score++; else if(v2>v1) w2Score++; }
+      else { if(v1<v2) w1Score++; else if(v2<v1) w2Score++; }
+    });
+    return '<div class="summary-title">'+w1.name+' '+w1Score+':'+w2Score+' '+w2.name+'</div>'+
+      '<div class="summary-text">'+(w1Score>w2Score?w1.name+' 整体更强':w2Score>w1Score?w2.name+' 整体更强':'双方持平')+'</div>';
+  })();
+}
+
+function miniRadar(w, color){
+  const keys = ["damage","fireRate","recoilVal","range","capacity"];
+  const maxVals = [75, 700, 100, 800, 40];
+  const n = 5, cx = 55, cy = 55, r = 45;
+  let pts = [];
+  for(let i=0; i<n; i++){
+    const angle = (Math.PI*2*i/n) - Math.PI/2;
+    const pct = w[keys[i]] / maxVals[i];
+    pts.push({x:cx+r*pct*Math.cos(angle), y:cy+r*pct*Math.sin(angle)});
+  }
+  return '<svg viewBox="0 0 110 110" class="radar-svg-small">'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+(r*0.5)+'" fill="none" stroke="#EEE" stroke-width="0.3"/>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="#EEE" stroke-width="0.3"/>'+
+    '<polygon points="'+pts.map(p=>p.x+','+p.y).join(' ')+'" fill="'+color+'20" stroke="'+color+'" stroke-width="1.5"/></svg>';
+}
+function openWeaponPicker(target){
+  pickerTarget = target;
+  document.getElementById("overlayList").innerHTML = weapons.map(w=>
+    '<div class="overlay-item" onclick="pickWeapon(\''+w.id+'\')">'+
+    '<img src="'+imgPath(w)+'" alt="'+w.name+'" onerror="this.style.display=\'none\'">'+
+    '<div><div class="oi-name">'+w.name+'</div><div class="oi-type">'+w.typeName+'</div></div></div>'
+  ).join("");
+  document.getElementById("weaponPicker").classList.add("show");
+}
+
+function pickWeapon(wid){
+  if(pickerTarget===1) compareSlots[0] = wid;
+  else compareSlots[1] = wid;
+  closePicker();
+  renderCompare();
+}
+
+function closePicker(){ document.getElementById("weaponPicker").classList.remove("show"); }
+function swapCompare(){ const t=compareSlots[0]; compareSlots[0]=compareSlots[1]; compareSlots[1]=t; renderCompare(); }
+
+function goSave(){
+  document.getElementById("headerTitle").textContent = "保存配装方案";
+  document.getElementById("btnFavorite").style.display = "none";
+  renderSavePreview();
+  showPage("save");
+}
+
+function renderSavePreview(){
+  const w = getWeapon(currentWeaponId||"HK416");
+  if(!w) return;
+  const muzzle = attachments.muzzle[activeAttachments.muzzle];
+  const grip = attachments.grip[activeAttachments.grip];
+  const mag = attachments.mag[activeAttachments.mag];
+  const sight = attachments.sight[activeAttachments.sight];
+  document.getElementById("savePreview").innerHTML =
+    '<div class="sp-img"><img src="'+imgPath(w)+'" alt="'+w.name+'" onerror="this.style.display=\'none\'"></div>'+
+    '<div class="sp-name">'+w.name+' 配装方案</div>'+
+    '<div class="sp-accessory">\uD83D\uDD2B 枪口：'+muzzle.name+'</div>'+
+    '<div class="sp-accessory">\u270B 握把：'+grip.name+'</div>'+
+    '<div class="sp-accessory">\uD83D\uDCE6 弹匣：'+mag.name+'</div>'+
+    '<div class="sp-accessory">\uD83D\uDD2D 瞄具：'+sight.name+'</div>';
+}
+
+function saveLoadout(){
+  const name = document.getElementById("saveName").value || "未命名方案";
+  const tags = Array.from(document.querySelectorAll(".save-tags .stag.selected")).map(t=>t.textContent);
+  const w = getWeapon(currentWeaponId||"HK416");
+  const item = '<div class="saved-item"><div><div class="si-name">'+name+' ('+w.name+')</div><div class="si-detail">'+(tags.join(" \u00B7 ")||"无标签")+' \u00B7 刚刚</div></div><div class="si-arrow">\u25B6</div></div>';
+  document.getElementById("savedItems").insertAdjacentHTML("afterbegin", item);
+  document.getElementById("saveName").value = "";
+  document.querySelectorAll(".save-tags .stag.selected").forEach(t=>t.classList.remove("selected"));
+  alert("\u2705 方案已保存！");
+}
+function switchTab(page){
+  currentPage = page;
+  document.querySelectorAll(".bottom-nav .nav-tab").forEach(t=>t.classList.remove("active"));
+  const tab = document.querySelector('.nav-tab[data-page="'+page+'"]');
+  if(tab) tab.classList.add("active");
+
+  document.getElementById("btnBack").style.display = (page==="home")?"none":"block";
+  document.getElementById("btnFavorite").style.display = "none";
+
+  if(page==="home"){
+    document.getElementById("headerTitle").textContent = "武器库";
+    renderWeaponGrid("", activeCategory);
+  } else if(page==="compare"){
+    document.getElementById("headerTitle").textContent = "武器对比";
+    renderCompare();
+  } else if(page==="save"){
+    document.getElementById("headerTitle").textContent = "保存配装方案";
+    renderSavePreview();
+  }
+  showPage(page);
+}
+
+function showPage(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  const target = document.getElementById("page-"+page);
+  if(target) target.classList.add("active");
+}
+
+document.getElementById("btnBack").addEventListener("click", function(){
+  if(currentPage==="detail"||currentPage==="attach"){
+    switchTab("home");
+  } else if(currentPage==="compare"||currentPage==="save"){
+    switchTab("home");
+  }
+});
+
+document.getElementById("btnFavorite").addEventListener("click", function(){
+  this.textContent = this.textContent==="\u2665 收藏"?"\u2764\uFE0F 已收藏":"\u2665 收藏";
+});
+
+document.getElementById("weaponPicker").addEventListener("click", function(e){
+  if(e.target===this) closePicker();
+});
+
+renderWeaponGrid();
+</script>
+</body>
+</html>
